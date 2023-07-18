@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import * as dat from "lil-gui";
+import { gsap } from "gsap";
 
 THREE.ColorManagement.enabled = false;
 
@@ -44,19 +46,17 @@ object3.updateMatrixWorld();
 
 // Raycaster
 const raycaster = new THREE.Raycaster();
-const rayOrigin = new THREE.Vector3(-3, 0, 0);
-const rayDirection = new THREE.Vector3(10, 0, 0);
-rayDirection.normalize();
+// const rayOrigin = new THREE.Vector3(-3, 0, 0);
+// const rayDirection = new THREE.Vector3(10, 0, 0);
+// rayDirection.normalize();
 
-raycaster.set(rayOrigin, rayDirection);
+// raycaster.set(rayOrigin, rayDirection);
 
-const intersect = raycaster.intersectObject(object1);
+// const intersect = raycaster.intersectObject(object1);
 
-console.log("intersetct", intersect);
+// console.log("intersetct", intersect);
 
-const intersects = raycaster.intersectObjects([object1, object2, object3]);
-
-console.log("intersects", intersects);
+// const intersects = raycaster.intersectObjects([object1, object2, object3]);
 
 /**
  * Sizes
@@ -78,6 +78,30 @@ window.addEventListener("resize", () => {
   // Update renderer
   renderer.setSize(sizes.width, sizes.height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
+
+// Mouse cursor
+const cursor = new THREE.Vector2();
+
+window.addEventListener("mousemove", (evt) => {
+  cursor.x = (evt.clientX / sizes.width) * 2 - 1;
+  cursor.y = -(evt.clientY / sizes.height) * 2 + 1;
+});
+
+window.addEventListener("click", (evt) => {
+  if (currentIntersect) {
+    switch (currentIntersect.object) {
+      case object1:
+        console.log("Click on object 1");
+        break;
+      case object2:
+        console.log("Click on object 2");
+        break;
+      case object3:
+        console.log("Click on object 3");
+        break;
+    }
+  }
 });
 
 /**
@@ -107,10 +131,28 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+// Load model
+const ambientLight = new THREE.AmbientLight("#ffffff", 0.3);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight("#ffffff", 0.1);
+directionalLight.position.set(0, 2, 0);
+scene.add(directionalLight);
+
+const modelLoader = new GLTFLoader();
+
+let model = null;
+
+modelLoader.load("/models/Blender.glb", (gltf) => {
+  model = gltf.scene;
+  scene.add(model);
+});
+
 /**
  * Animate
  */
 const clock = new THREE.Clock();
+
+let currentIntersect = null;
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
@@ -119,19 +161,57 @@ const tick = () => {
   object2.position.y = Math.sin(elapsedTime * 0.2) * 2;
   object3.position.y = Math.sin(elapsedTime * 0.8) * 2;
 
-  const rayOrigin = new THREE.Vector3(-3, 0, 0);
-  const rayDirection = new THREE.Vector3(10, 0, 0);
-  rayDirection.normalize();
-  raycaster.set(rayOrigin, rayDirection);
+  // const rayOrigin = new THREE.Vector3(-3, 0, 0);
+  // const rayDirection = new THREE.Vector3(10, 0, 0);
+  // rayDirection.normalize();
+  // raycaster.set(rayOrigin, rayDirection);
+
+  // const objectToTest = [object1, object2, object3];
+  // const intersects = raycaster.intersectObjects(objectToTest);
+  // objectToTest.forEach((object) => {
+  //   object.material.color.set("#ff0000");
+  // });
+  // intersects.forEach((intersect) => {
+  //   intersect.object.material.color.set("#0000ff");
+  // });
+
+  raycaster.setFromCamera(cursor, camera);
 
   const objectToTest = [object1, object2, object3];
+
   const intersects = raycaster.intersectObjects(objectToTest);
+
   objectToTest.forEach((object) => {
     object.material.color.set("#ff0000");
+    object.rotation.y = elapsedTime;
   });
   intersects.forEach((intersect) => {
     intersect.object.material.color.set("#0000ff");
   });
+
+  if (intersects.length) {
+    if (!currentIntersect) {
+      console.log("mouseenter");
+    }
+    currentIntersect = intersects[0];
+  } else {
+    if (currentIntersect) {
+      console.log("mouseleave");
+    }
+    currentIntersect = null;
+  }
+
+  if (model) {
+    model.scale.set(1, 1, 1);
+    const intersect = raycaster.intersectObject(model);
+    if (intersect.length) {
+      intersect[0].object.scale.set(
+        Math.abs(Math.cos(elapsedTime)) * 1.5,
+        Math.abs(Math.cos(elapsedTime)) * 1.5,
+        Math.abs(Math.cos(elapsedTime)) * 1.5
+      );
+    }
+  }
 
   // Update controls
   controls.update();
