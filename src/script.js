@@ -142,7 +142,7 @@ const modelLoader = new GLTFLoader();
 
 let model = null;
 
-modelLoader.load("/models/Blender.glb", (gltf) => {
+modelLoader.load("/models/Duck/glTF-Binary/Duck.glb", (gltf) => {
   model = gltf.scene;
   scene.add(model);
 });
@@ -205,11 +205,7 @@ const tick = () => {
     model.scale.set(1, 1, 1);
     const intersect = raycaster.intersectObject(model);
     if (intersect.length) {
-      intersect[0].object.scale.set(
-        Math.abs(Math.cos(elapsedTime)) * 1.5,
-        Math.abs(Math.cos(elapsedTime)) * 1.5,
-        Math.abs(Math.cos(elapsedTime)) * 1.5
-      );
+      intersect[0].object.rotation.y = elapsedTime;
     }
   }
 
